@@ -18,6 +18,7 @@ domain=$(ynh_app_setting_get "$app" domain)
 path_url=$(ynh_app_setting_get "$app" path)
 final_path=$(ynh_app_setting_get "$app" final_path)
 launch_on_boot=$(ynh_app_setting_get "$app" launch_on_boot)
+#s.w. Die Port-Behandlung muss überarbeitet werden. Es ist nicht erforderlich den Port im Firewall zu öffnen
 open_webserver_port=$(ynh_app_setting_get "$app" open_webserver_port)
 
 #=================================================
@@ -35,53 +36,82 @@ ynh_remove_systemd_config
 
 
 #=================================================
-# REMOVE NGINX CONFIGURATION
-#=================================================
-ynh_remove_nginx_config
-
-
-#=================================================
 # CLOSE WEB SERVER PORT
 #=================================================
+#s.w. Die Port-Behandlung muss überarbeitet werden. Es ist nicht erforderlich den Port im Firewall zu öffnen
 if [ "$open_webserver_port" -eq 1 ]
 then
     yunohost firewall disallow TCP 8080 2>&1
 fi
 
+#=================================================
+# STANDARD REMOVE
+#=================================================
+# REMOVE SERVICE INTEGRATION IN YUNOHOST
+#=================================================
 
-#=================================================
-# REMOVE SERVICE FROM ADMIN PANEL
-#=================================================
-if yunohost service status | grep -q "$app"
+# Remove the service from the list of services known by YunoHost (added from `yunohost service add`)
+if ynh_exec_warn_less yunohost service status $app >/dev/null
 then
-	echo "Remove $app service"
-	yunohost service remove "$app"
+	ynh_script_progression --message="Removing $app service integration..." --weight=1
+	yunohost service remove $app
 fi
-systemctl daemon-reload
 
+#=================================================
+# STOP AND REMOVE SERVICE
+#=================================================
+ynh_script_progression --message="Stopping and removing the systemd service..." --weight=4
+
+# Remove the dedicated systemd config
+ynh_remove_systemd_config
 
 #=================================================
 # X11 SETTINGS
 #=================================================
+#s.w. das folgende Kommando steht auch im Installskript. das ist wahrscheinlich falsch! 
 ynh_replace_string "allowed_users=anybody" "allowed_users=console" /etc/X11/Xwrapper.config
 
+
 #=================================================
-# REMOVE DEPENDENCIES AND KODI
+# REMOVE DEPENDENCIES
 #=================================================
+ynh_script_progression --message="Removing dependencies..." --weight=42
+#s.w. unklar, was der erste Teil mit der app-list soll, würde ich löschen
 if [[ $arch != arm*  ]]; then
  	ynh_secure_remove "/etc/apt/sources.list.d/${app}.list" 
 fi
 
+# Remove metapackage and its dependencies
 ynh_remove_app_dependencies
 
 #=================================================
 # REMOVE APP MAIN DIR
 #=================================================
+ynh_script_progression --message="Removing app main directory..." --weight=2
+
 # Remove the app directory securely
-ynh_secure_remove "$final_path"
-
+ynh_secure_remove --file="$final_path"
 
 #=================================================
-# REMOVE KODI USER
+# REMOVE NGINX CONFIGURATION
 #=================================================
-ynh_system_user_delete "$app"
+ynh_script_progression --message="Removing NGINX web server configuration..." --weight=2
+
+# Remove the dedicated NGINX config
+ynh_remove_nginx_config
+
+#=================================================
+# GENERIC FINALIZATION
+#=================================================
+# REMOVE DEDICATED USER
+#=================================================
+ynh_script_progression --message="Removing the dedicated system user..." --weight=2
+
+# Delete a system user
+ynh_system_user_delete --username=$app
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+
+ynh_script_progression --message="Removal of $app completed" --last
