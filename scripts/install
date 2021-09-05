@@ -82,9 +82,9 @@ fi
 # INSTALL DEPENDENCIES AND KODI
 #=================================================
 if [[ $arch != arm*  ]]; then
-    ynh_install_app_dependencies "xorg xinit dbus-x11 kodi"
+    ynh_install_app_dependencies "xorg xinit dbus-x11 kodi kodi-pvr-hts"
 else
-	ynh_install_app_dependencies "xserver-xorg-legacy xorg dbus-x11 kodi"
+	ynh_install_app_dependencies "xserver-xorg-legacy xorg dbus-x11 kodi kodi-pvr-hts"
 fi
 
 #=================================================
