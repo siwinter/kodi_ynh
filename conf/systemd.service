@@ -13,7 +13,11 @@ User = __APP__
 Group = __APP__
 Type = simple
 #PAMName = login # you might want to try this one, did not work on all systems
-ExecStart = /usr/bin/xinit /usr/bin/dbus-launch --exit-with-session /usr/bin/kodi-standalone -- :0 -nolisten tcp vt7
+
+# kodi vor raspberry OS doesn't need windows manager
+ExecStart = /usr/bin/kodi-standalone
+# for other OS try this line:
+#ExecStart = /usr/bin/xinit /usr/bin/dbus-launch --exit-with-session /usr/bin/kodi-standalone -- :0 -nolisten tcp vt7
 Restart = on-abort
 RestartSec = 5
 
