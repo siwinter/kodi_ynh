@@ -137,14 +137,75 @@ ynh_app_setting_set "$app" protected_uris "/"
 domainregex=$(echo "$domain" | sed 's/-/\%&/g')
 ynh_app_setting_set "$app" skipped_regex "$domainregex/jsonrpc.*$,$domainregex/image.*$"
 
-# Reload SSOwat config
-yunohost app ssowatconf
-
-# Reload Nginx
-systemctl reload nginx
-
+siwi ab hier ist aktualisiert
 
 #=================================================
-# START KODI
+# NGINX CONFIGURATION
 #=================================================
-systemctl start "$app"
+#siwi to be checked
+ynh_script_progression --message="Configuring NGINX web server..." --time --weight=1
+
+### `ynh_add_nginx_config` will use the file conf/nginx.conf
+
+# Create a dedicated NGINX config
+ynh_add_nginx_config
+
+#=================================================
+# SETUP SYSTEMD
+#=================================================
+#siwi to be checked
+ynh_script_progression --message="Configuring a systemd service..." --time --weight=1
+
+ynh_add_systemd_config
+
+#=================================================
+# GENERIC FINALIZATION
+#=================================================
+# SETUP LOGROTATE
+#=================================================
+#siwi to be checked
+ynh_script_progression --message="Configuring log rotation..." --time --weight=1
+
+# Use logrotate to manage application logfile(s)
+ynh_use_logrotate
+
+#=================================================
+# INTEGRATE SERVICE IN YUNOHOST
+#=================================================
+#siwi to be checked
+ynh_script_progression --message="Integrating service in YunoHost..." --time --weight=1
+
+yunohost service add $app --description="A short description of the app" --log="/var/log/$app/$app.log"
+
+#=================================================
+# START SYSTEMD SERVICE
+#=================================================
+ynh_script_progression --message="Starting a systemd service..." --time --weight=1
+
+ynh_systemd_action --service_name=$app --action="start" --log_path="/var/log/$app/$app.log"
+
+#=================================================
+# SETUP SSOWAT
+#=================================================
+ynh_script_progression --message="Configuring permissions..." --time --weight=1
+
+# Make app public if necessary
+#if [ $is_public -eq 1 ]
+#then
+#	# Everyone can access the app.
+#	# The "main" permission is automatically created before the install script.
+#	ynh_permission_update --permission="main" --add="visitors"
+#fi
+
+#=================================================
+# RELOAD NGINX
+#=================================================
+ynh_script_progression --message="Reloading NGINX web server..." --time --weight=1
+
+ynh_systemd_action --service_name=nginx --action=reload
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+
+ynh_script_progression --message="Installation of $app completed" --time --last
