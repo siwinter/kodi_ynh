@@ -17,7 +17,8 @@ app=$YNH_APP_INSTANCE_NAME
 domain=$(ynh_app_setting_get "$app" domain)
 path_url=$(ynh_app_setting_get "$app" path)
 final_path=$(ynh_app_setting_get "$app" final_path)
-launch_on_boot=$(ynh_app_setting_get "$app" launch_on_boot)
+#siwi launch on boot entfernt
+#launch_on_boot=$(ynh_app_setting_get "$app" launch_on_boot)
 #s.w. Die Port-Behandlung muss überarbeitet werden. Es ist nicht erforderlich den Port im Firewall zu öffnen
 open_webserver_port=$(ynh_app_setting_get "$app" open_webserver_port)
 
