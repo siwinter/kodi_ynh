@@ -19,24 +19,17 @@ ynh_abort_if_errors
 #=================================================
 domain=$YNH_APP_ARG_DOMAIN
 path_url=$YNH_APP_ARG_PATH
-app=$YNH_APP_INSTANCE_NAME
+#siwi launch on boot entfernt
 #launch_on_boot=$YNH_APP_ARG_LAUNCH_ON_BOOT
-#s.w. Die Port-Behandlung muss überarbeitet werden. Es ist nicht erforderlich den Port im Firewall zu öffnen
 open_webserver_port=$YNH_APP_ARG_OPEN_WEBSERVER_PORT
 
-
+app=$YNH_APP_INSTANCE_NAME
 #=================================================
 # GLOBAL VARS
 #=================================================
 final_path=/var/www/$app
 
 test ! -e "$final_path" || ynh_die "This path already contains a folder"
-
-# Normalize the url path syntax
-path_url=$(ynh_normalize_url_path "$path_url")
-
-# Check web path availability
-ynh_webpath_available "$domain" "$path_url"
 
 # Register (book) web path
 ynh_webpath_register "$app" "$domain" "$path_url"
@@ -45,12 +38,32 @@ ynh_webpath_register "$app" "$domain" "$path_url"
 #=================================================
 # STORE SETTINGS FROM MANIFEST
 #=================================================
+ynh_script_progression --message="Storing installation settings..." --time --weight=1
+
+ynh_app_setting_set --app=$app --key=domain --value=$domain
 ynh_app_setting_set "$app" domain "$domain"
 ynh_app_setting_set "$app" path_url "$path_url"
 ynh_app_setting_set "$app" final_path "$final_path"
+#siwi launch on boot entfernt
 #ynh_app_setting_set "$app" launch_on_boot "$launch_on_boot"
-#s.w. Die Port-Behandlung muss überarbeitet werden. Es ist nicht erforderlich den Port im Firewall zu öffnen
 ynh_app_setting_set "$app" open_webserver_port "$open_webserver_port"
+
+#=================================================
+# STANDARD MODIFICATIONS
+#=================================================
+# FIND AND OPEN A PORT
+#=================================================
+
+ynh_script_progression --message="Finding an available port......" --time --weight=1
+#siwi check port Behandlung
+port=$(ynh_find_port --port=8080)
+ynh_app_setting_set --app=$app --key=port --value=$port
+
+if [ "$open_webserver_port" -eq 1 ]
+then
+    ynh_script_progression --message="Configuring firewall..." --time --weight=1
+    ynh_exec_warn_less yunohost firewall allow --no-upnp TCP $port
+fi
 
 
 #=================================================
@@ -109,11 +122,6 @@ cp ../conf/advancedsettings.xml "$final_path/.kodi/userdata/advancedsettings.xml
 
 chown -R "$app":"$app" "$final_path"
 
-#s.w. Die Port-Behandlung muss überarbeitet werden. Es ist nicht erforderlich den Port im Firewall zu öffnen
-if [ "$open_webserver_port" -eq 1 ]
-then
-    yunohost firewall allow --no-upnp TCP 8080 2>&1
-fi
 
 
 #=================================================
