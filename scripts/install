@@ -28,9 +28,7 @@ open_webserver_port=$YNH_APP_ARG_OPEN_WEBSERVER_PORT
 #=================================================
 # GLOBAL VARS
 #=================================================
-arch=$(uname -m)
 final_path=/var/www/$app
-
 
 test ! -e "$final_path" || ynh_die "This path already contains a folder"
 
@@ -81,11 +79,8 @@ fi
 #=================================================
 # INSTALL DEPENDENCIES AND KODI
 #=================================================
-if [[ $arch != arm*  ]]; then
-    ynh_install_app_dependencies "xorg xinit dbus-x11 kodi kodi-pvr-hts"
-else
-	ynh_install_app_dependencies "xserver-xorg-legacy xorg dbus-x11 kodi kodi-pvr-hts"
-fi
+ynh_script_progression --message="Installing Kodi and dependencies..." --time --weight=1
+ynh_install_app_dependencies $pkg_dependencies
 
 #=================================================
 # X11 SETTINGS
@@ -105,10 +100,11 @@ yunohost service add "$app" --log "$final_path/.kodi/temp/kodi.log"
 mkdir -p "$final_path/.kodi/userdata/"
 cp ../conf/advancedsettings.xml "$final_path/.kodi/userdata/advancedsettings.xml"
 
-mkdir -p "$final_path/.kodi/addons/"
-if [[ $arch != arm*  ]]; then
-     ynh_setup_source --dest_dir="$final_path/.kodi/addons/" --source_id="arm-chorus2" 
-fi
+#siwi: das ist vermutlich garnicht notwendig?
+#mkdir -p "$final_path/.kodi/addons/"
+#if [[ $arch != arm*  ]]; then
+#     ynh_setup_source --dest_dir="$final_path/.kodi/addons/" --source_id="arm-chorus2" 
+#fi
 
 chown -R "$app":"$app" "$final_path"
 
