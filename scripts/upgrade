@@ -3,7 +3,7 @@
 #=================================================
 # GENERIC START
 #=================================================
-# IMPORT GENERIC HELPERS
+# IMGENERIC HELPERS
 #=================================================
 source _common.sh
 source /usr/share/yunohost/helpers
@@ -14,6 +14,7 @@ source /usr/share/yunohost/helpers
 #=================================================
 app=$YNH_APP_INSTANCE_NAME
 domain=$(ynh_app_setting_get "$app" domain)
+port=$(ynh_app_setting_get --app=$app --key=port)
 path_url=$(ynh_app_setting_get "$app" path)
 final_path=$(ynh_app_setting_get "$app" final_path)
 #siwi launch on boot entfernt
@@ -101,7 +102,7 @@ ynh_replace_string "allowed_users=console" "allowed_users=anybody" /etc/X11/Xwra
 #=================================================
 if [ $open_webserver_port -eq 1 ]
 then
-    yunohost firewall allow --no-upnp TCP 8080 2>&1
+    ynh_exec_warn_less yunohost firewall allow --no-upnp TCP $port
 fi
 
 
