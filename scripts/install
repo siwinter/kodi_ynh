@@ -65,18 +65,19 @@ then
     ynh_exec_warn_less yunohost firewall allow --no-upnp TCP $port
 fi
 
+#=================================================
+# CREATE DEDICATED USER
+#=================================================
+ynh_script_progression --message="Configuring system user..." --time --weight=1
+ynh_system_user_create --username="$app" --home_dir="$final_path" --groups="cdrom,audio,video,plugdev,users,dialout,dip,input,netdev"
 
-#=================================================
-# CREATE KODI USER
-#=================================================
-ynh_system_user_create "$app" "$final_path"
-mkdir "$final_path"
-chown -R "$app":"$app" "$final_path"
-usermod -a -G cdrom,audio,video,plugdev,users,dialout,dip,input,netdev "$app"
+#ynh_system_user_create "$app" "$final_path"
+#mkdir "$final_path"
+#chown -R "$app":"$app" "$final_path"
+#usermod -a -G cdrom,audio,video,plugdev,users,dialout,dip,input,netdev "$app"
 
 # Create a system user
 # s.w. wahrscheinlich geht alles da oben mit dieser Zeile (zu testen, insbesondere user und group von finalpath)
-# ynh_system_user_create --username="$app" --home_dir="$final_path" --groups="cdrom,audio,video,plugdev,users,dialout,dip,input,netdev"
 
 #=================================================
 # ADD SYSTEMD CONFIG
@@ -89,7 +90,6 @@ usermod -a -G cdrom,audio,video,plugdev,users,dialout,dip,input,netdev "$app"
 #    systemctl disable "$app"
 #fi
 
-
 #=================================================
 # INSTALL DEPENDENCIES AND KODI
 #=================================================
@@ -97,70 +97,51 @@ ynh_script_progression --message="Installing Kodi and dependencies..." --time --
 ynh_install_app_dependencies $pkg_dependencies
 
 #=================================================
-# X11 SETTINGS
-#=================================================
-ynh_replace_string "allowed_users=console" "allowed_users=anybody" /etc/X11/Xwrapper.config
-
-
-#=================================================
-# ADVERTISE SERVICE IN ADMIN PANEL
-#=================================================
-yunohost service add "$app" --log "$final_path/.kodi/temp/kodi.log"
-
-
-#=================================================
-# CONTROL WEB INTERFACE
-#=================================================
-mkdir -p "$final_path/.kodi/userdata/"
-cp ../conf/advancedsettings.xml "$final_path/.kodi/userdata/advancedsettings.xml"
-
-#siwi: das ist vermutlich garnicht notwendig?
-#mkdir -p "$final_path/.kodi/addons/"
-#if [[ $arch != arm*  ]]; then
-#     ynh_setup_source --dest_dir="$final_path/.kodi/addons/" --source_id="arm-chorus2" 
-#fi
-
-chown -R "$app":"$app" "$final_path"
-
-
-
-#=================================================
 # NGINX
 #=================================================
-finalnginxconf="/etc/nginx/conf.d/$domain.d/$app.conf"
-ynh_backup_if_checksum_is_different "$finalnginxconf"
-cp ../conf/nginx.conf "$finalnginxconf"
+#finalnginxconf="/etc/nginx/conf.d/$domain.d/$app.conf"
+#ynh_backup_if_checksum_is_different "$finalnginxconf"
+#cp ../conf/nginx.conf "$finalnginxconf"
 
-if [ "$path_url" == "/" ]; then
-    ynh_replace_string "__PATH__/" "/" "$finalnginxconf"
-else
-    ynh_replace_string "__PATH__" "$path_url" "$finalnginxconf"
-fi
+#if [ "$path_url" == "/" ]; then
+#    ynh_replace_string "__PATH__/" "/" "$finalnginxconf"
+#else
+#    ynh_replace_string "__PATH__" "$path_url" "$finalnginxconf"
+#fi
 
-ynh_app_setting_set "$app" protected_uris "/"
+#ynh_app_setting_set "$app" protected_uris "/"
 
-domainregex=$(echo "$domain" | sed 's/-/\%&/g')
-ynh_app_setting_set "$app" skipped_regex "$domainregex/jsonrpc.*$,$domainregex/image.*$"
+#domainregex=$(echo "$domain" | sed 's/-/\%&/g')
+#ynh_app_setting_set "$app" skipped_regex "$domainregex/jsonrpc.*$,$domainregex/image.*$"
 
-siwi ab hier ist aktualisiert
 
 #=================================================
 # NGINX CONFIGURATION
 #=================================================
-#siwi to be checked
 ynh_script_progression --message="Configuring NGINX web server..." --time --weight=1
 
-### `ynh_add_nginx_config` will use the file conf/nginx.conf
-
-# Create a dedicated NGINX config
+### `ynh_add_nginx_config` will use the file conf/nginx
 ynh_add_nginx_config
+
+#=================================================
+# ADD A CONFIGURATION
+#=================================================
+ynh_script_progression --message="Adding a configuration file..." --time --weight=1
+mkdir -p "$final_path/.kodi/userdata/"
+ynh_add_config --template="advancedsettings.xml" --destination="$final_path/.kodi/userdata/advancedsettings.xml"
+
+#=================================================
+# X11 SETTINGS
+#=================================================
+#siwi das ist möglicherweise erforderlich für non raspi, wei die die Ausgabe über x-server nutzen
+#ynh_replace_string "allowed_users=console" "allowed_users=anybody" /etc/X11/Xwrapper.config
 
 #=================================================
 # SETUP SYSTEMD
 #=================================================
-#siwi to be checked
 ynh_script_progression --message="Configuring a systemd service..." --time --weight=1
 
+# Create a dedicated systemd config
 ynh_add_systemd_config
 
 #=================================================
@@ -168,7 +149,6 @@ ynh_add_systemd_config
 #=================================================
 # SETUP LOGROTATE
 #=================================================
-#siwi to be checked
 ynh_script_progression --message="Configuring log rotation..." --time --weight=1
 
 # Use logrotate to manage application logfile(s)
@@ -177,11 +157,23 @@ ynh_use_logrotate
 #=================================================
 # INTEGRATE SERVICE IN YUNOHOST
 #=================================================
-#siwi to be checked
 ynh_script_progression --message="Integrating service in YunoHost..." --time --weight=1
 
-yunohost service add $app --description="A short description of the app" --log="/var/log/$app/$app.log"
+if [ "$open_webserver_port" -eq 1 ]
+then
+    yunohost service add $app --description="A short description of the app" --log "$final_path/.kodi/temp/kodi.log" --needs_exposed_ports "$port"
+else
+    yunohost service add $app --description="A short description of the app" --log "$final_path/.kodi/temp/kodi.log"
+fi
 
+#=================================================
+# ADVERTISE SERVICE IN ADMIN PANEL
+#=================================================
+yunohost service add "$app" --log "$final_path/.kodi/temp/kodi.log"
+
+#=================================================
+# GENERIC FINALIZATION
+#=================================================
 #=================================================
 # START SYSTEMD SERVICE
 #=================================================
@@ -194,13 +186,7 @@ ynh_systemd_action --service_name=$app --action="start" --log_path="/var/log/$ap
 #=================================================
 ynh_script_progression --message="Configuring permissions..." --time --weight=1
 
-# Make app public if necessary
-#if [ $is_public -eq 1 ]
-#then
-#	# Everyone can access the app.
-#	# The "main" permission is automatically created before the install script.
-#	ynh_permission_update --permission="main" --add="visitors"
-#fi
+ynh_app_setting_set --app=$app --key=skipped_uris --value="/"
 
 #=================================================
 # RELOAD NGINX
