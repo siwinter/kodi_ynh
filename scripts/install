@@ -17,10 +17,10 @@ ynh_abort_if_errors
 #=================================================
 # RETRIEVE ARGUMENTS FROM THE MANIFEST
 #=================================================
-app=$YNH_APP_INSTANCE_NAME
 domain=$YNH_APP_ARG_DOMAIN
 path_url=$YNH_APP_ARG_PATH
-launch_on_boot=$YNH_APP_ARG_LAUNCH_ON_BOOT
+app=$YNH_APP_INSTANCE_NAME
+#launch_on_boot=$YNH_APP_ARG_LAUNCH_ON_BOOT
 #s.w. Die Port-Behandlung muss überarbeitet werden. Es ist nicht erforderlich den Port im Firewall zu öffnen
 open_webserver_port=$YNH_APP_ARG_OPEN_WEBSERVER_PORT
 
@@ -48,7 +48,7 @@ ynh_webpath_register "$app" "$domain" "$path_url"
 ynh_app_setting_set "$app" domain "$domain"
 ynh_app_setting_set "$app" path_url "$path_url"
 ynh_app_setting_set "$app" final_path "$final_path"
-ynh_app_setting_set "$app" launch_on_boot "$launch_on_boot"
+#ynh_app_setting_set "$app" launch_on_boot "$launch_on_boot"
 #s.w. Die Port-Behandlung muss überarbeitet werden. Es ist nicht erforderlich den Port im Firewall zu öffnen
 ynh_app_setting_set "$app" open_webserver_port "$open_webserver_port"
 
@@ -68,12 +68,13 @@ usermod -a -G cdrom,audio,video,plugdev,users,dialout,dip,input,netdev "$app"
 #=================================================
 # ADD SYSTEMD CONFIG
 #=================================================
-ynh_add_systemd_config
+#siwi launch on boot entfernt
+#ynh_add_systemd_config
 
-if [ "$launch_on_boot" -eq 0 ]
-then
-    systemctl disable "$app"
-fi
+#if [ "$launch_on_boot" -eq 0 ]
+#then
+#    systemctl disable "$app"
+#fi
 
 
 #=================================================
