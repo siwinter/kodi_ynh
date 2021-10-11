@@ -12,10 +12,7 @@ After = systemd-user-sessions.service network.target sound.target
 User = __APP__
 Group = __APP__
 Type = simple
-#PAMName = login # you might want to try this one, did not work on all systems
-
-# kodi vor raspberry OS doesn't need windows manager
-ExecStart = __EXEC_START__
+ExecStart = __START_CMD__
 Restart = on-abort
 RestartSec = 5
 
